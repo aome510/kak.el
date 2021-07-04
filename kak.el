@@ -1,14 +1,22 @@
-;;; kak.el -*- lexical-binding: t; -*-
-;;;
-;;;
-;;;
+;;; kak.el --- An attempt to port Kakoune's interactive multiple cursors to Emacs -*- lexical-binding: t; -*-
+
+;; Author: Thang Pham <phamducthang1234@gmail.com>
+;; Version: 0.1
+;; MIT License
+
+;;; Commentary:
+;;; This package provides functions that simulate Kakoune's multi-selection commands.
+;;; It is built on top of `evil-mc''s multiple cursors and `evil''s functions.
+
+
+;;; Code:
+(require 'evil)
+(require 'evil-mc)
 
 ;;; overidding `evil-mc-get-default-cursor' to use
 ;;; `evil-mc-from-real-cursor' that creates a fake cursor
 ;;; based on the real cursor.
-
 (defun evil-mc-from-real-cursor ()
-  "Return a cursor based on the real cursor"
   (let (cursor
         (state (evil-mc-read-cursor-state))
         (names (evil-mc-get-cursor-variables)))
@@ -199,8 +207,8 @@
           (goto-char beg)
           (if kak-matches
               (progn (evil-exit-visual-state) (kak-make-cursors-for-matches kak-matches))
-            (user-error "no match"))))
-    (user-error "must be in visual state")))
+            (user-error "No match"))))
+    (user-error "Must be in visual state")))
 
 (defun kak-filter (&optional keep)
   (interactive)
@@ -212,8 +220,8 @@
             (progn
               (evil-mc-undo-all-cursors)
               (kak-make-cursors-for-matches kak-matches))
-          (user-error "no matches remaining")))
-    (user-error "must be in visual state")))
+          (user-error "No matches remaining")))
+    (user-error "Must be in visual state")))
 
 (defun kak-exec-shell-command (command)
   (interactive (list (read-shell-command "Shell command: ")))
@@ -232,7 +240,7 @@
                (setq beg (evil-mc-get-region-start region))
                (setq end (evil-mc-get-region-end region))
                (evil-shell-command-on-region beg end command))))))
-    (user-error "must be in visual state")))
+    (user-error "Must be in visual state")))
 
 (defun kak-insert-index (base)
   (interactive "nbase index: ")
@@ -249,13 +257,5 @@
            (insert (number-to-string (+ index base)))
            (backward-char 1)))))))
 
-(map!
- :v ". #" #'kak-insert-index
- :v ". |" #'kak-exec-shell-command
- :v ". s" #'(lambda (beg end) (interactive "r") (kak-select beg end nil))
- :v ". S" #'(lambda (beg end) (interactive "r") (kak-select beg end t))
- :v ". k" (lambda () (interactive) (kak-filter t))
- :v ". K" (lambda () (interactive) (kak-filter nil))
- )
-
 (provide 'kak)
+;;; kak.el ends here
