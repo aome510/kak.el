@@ -5,6 +5,26 @@ An attempt to port [Kakoune](https://github.com/mawww/kakoune)'s multiple select
 This package provides functions that simulate Kakoune's multiple selection commands.
 It's built on top of [`evil-mc`](https://github.com/gabesoft/evil-mc)'s multiple cursors and [`evil`](https://github.com/emacs-evil/evil)'s functions.
 
+## Functions
+
+The package's main functions:
+
+### Visual mode only functions
+
+- `|` - `kak-exec-shell-command (command)`: execute a shell command using each cursor's region as the standard input and replace the region with the standard output.
+- `s/S` - `kak-select (beg end invert)`: split/select a given region into multiple matching regions. `invert` determines whether the command should do a split.
+- `M-k/M-K` `kak-filter (keep)`: filter/keep all active cursors. `keep` determines whether the command should keep the matching cursors.
+
+### Normal/Visual mode functions
+
+- `kak-insert-index (base)` insert an index after each cursor based on a `base` index and the cursor's position relative to other cursors.
+
+## Demo
+
+![demo](./examples/demo.gif)
+
+## Usage
+
 To use the package after installation
 
 ```emacs-lisp
