@@ -8,15 +8,16 @@
 ;;; This package provides functions that simulate Kakoune's multi-selection commands.
 ;;; It is built on top of `evil-mc''s multiple cursors and `evil''s functions.
 
+;;; In this package, a matching region and a cursor's region are used interchangably.
+;;; A matching region indicates the region of a real cursor and `evil-mc''s fake cursors.
 
 ;;; Code:
 (require 'evil)
 (require 'evil-mc)
+(require 'core-lib)
 
-;;; overidding `evil-mc-get-default-cursor' to use
-;;; `evil-mc-from-real-cursor' that creates a fake cursor
-;;; based on the real cursor.
-(defun evil-mc-from-real-cursor ()
+(defun evil-mc-create-fake-cursor-from-real-cursor ()
+  "Create an `evil-mc' fake cursor from the real cursor state."
   (let (cursor
         (state (evil-mc-read-cursor-state))
         (names (evil-mc-get-cursor-variables)))
@@ -27,8 +28,9 @@
                     (copy-tree (evil-mc-get-cursor-property state name)))))
     cursor))
 
+;; overidding `evil-mc-get-default-cursor' to use `evil-mc-create-fake-cursor-from-real-cursor' for creating a fake cursor
 (advice-add 'evil-mc-get-default-cursor :override
-            #'evil-mc-from-real-cursor)
+            #'evil-mc-create-fake-cursor-from-real-cursor)
 
 ;;; variables
 
@@ -43,6 +45,7 @@
 ;;; hooks
 
 (defun kak-add-search-highlight (_beg _end _range)
+  "Update highlight for all search matching regions."
   (progn
     (mapc #'delete-overlay kak-match-overlays)
     (condition-case err
@@ -57,6 +60,7 @@
        (evil-ex-echo "%s" (cdr err))))))
 
 (defun kak-add-filter-highlight (_beg _end _range)
+  "Update highlight for all filter matching regions."
   (progn
     (mapc #'delete-overlay kak-match-overlays)
     (condition-case err
@@ -78,18 +82,22 @@
        (evil-ex-echo "%s" (cdr err))))))
 
 (defun kak-start-filter-session()
+  "Start a filter session."
   (add-hook 'after-change-functions #'kak-add-filter-highlight nil t))
 
 (defun kak-end-filter-session ()
+  "End the current filter session."
   (mapc #'delete-overlay kak-match-overlays)
   (remove-hook 'minibuffer-setup-hook #'kak-start-filter-session)
   (remove-hook 'minibuffer-exit-hook #'kak-end-filter-session)
   (remove-hook 'after-change-functions #'kak-add-filter-highlight))
 
 (defun kak-start-search-session()
+  "Start a search session."
   (add-hook 'after-change-functions #'kak-add-search-highlight nil t))
 
 (defun kak-end-search-session ()
+  "End the current search session."
   (mapc #'delete-overlay kak-match-overlays)
   (remove-hook 'minibuffer-setup-hook #'kak-start-search-session)
   (remove-hook 'minibuffer-exit-hook #'kak-end-search-session)
@@ -98,6 +106,7 @@
 ;;; functions
 
 (defun kak-get-match-overlays ()
+  "Get overlays from matching regions."
   (setq kak-match-overlays (mapcar
                             (lambda (match) (make-overlay (cl-first match) (cl-second match)))
                             kak-matches))
@@ -107,6 +116,8 @@
           kak-match-overlays))
 
 (defun kak-get-invert-matches (matches beg end)
+  "Invert matching regions (MATCHES) in a given region (BEG to END).
+Matching regions become spliting regions."
   (if (> beg end) nil
     (pcase matches
       ('nil `((,beg ,end)))
@@ -117,6 +128,7 @@
                (kak-get-invert-matches matches (cl-second match) end)))))))
 
 (defun kak-get-matches-in-region (regex)
+  "Get all regions matching a REGEX string."
   (let ((match))
     (setq! kak-matches nil
            kak-match-overlays nil)
@@ -124,7 +136,6 @@
     (if (search-forward-regexp regex nil kak-region-end)
         (setq match (match-data 0)) (setq match nil))
     (while (and match (<= (cl-second match) kak-region-end))
-      (message "%s" match)
       (push match kak-matches)
       (goto-char (cl-second match))
       ;; handle eof and eol cases
@@ -139,6 +150,7 @@
       (setq kak-matches (kak-get-invert-matches kak-matches kak-region-beg kak-region-end)))))
 
 (defun kak-make-cursors-for-matches (matches)
+  "Create a fake cursor for each matching regions in MATCHES."
   (pcase matches
     (`(,match . nil) (evil-visual-make-selection (cl-first match) (1- (cl-second match))))
     (`(,match . ,matches) (progn
@@ -162,6 +174,9 @@
                             (kak-make-cursors-for-matches matches)))))
 
 (defun kak-init-search (beg end &optional invert)
+  "Initialize a search session in a given region (BEG to END).
+If INVERT is nil, the search regex is used to select matching regions.
+If INVERT is t, the search regex is used to split matching regions."
   (progn
     (setq! kak-current-buffer (current-buffer)
            kak-region-beg beg
@@ -172,6 +187,7 @@
     (add-hook 'minibuffer-exit-hook #'kak-end-search-session)))
 
 (defun kak-get-matches ()
+  "Get all the matching regions based on the fake cursors (`evil-mc' cursors) and the real cursors."
   (let ((matches
          (cons `(,(region-beginning) ,(region-end))
                (mapcar
@@ -183,6 +199,9 @@
     (cl-sort matches #'< :key #'car)))
 
 (defun kak-init-filter (&optional keep)
+  "Initialize a filter session.
+If KEEP is nil, cursors matching a regex string will be filtered.
+If KEEP is true, cursors matching a regex string will be kept."
   (progn
     (setq! kak-current-buffer (current-buffer)
            kak-filter-keep keep
@@ -193,11 +212,15 @@
 ;;; interactive functions
 
 (defun kak-restore-last-region ()
+  "Restore the previous region used for selecting/spliting."
   (interactive)
   (if (and kak-region-beg kak-region-end)
       (evil-visual-make-region kak-region-beg (1- kak-region-end))))
 
 (defun kak-select (beg end &optional invert)
+  "Select/split a region (BEG to END) into multiple matching regions.
+If INVERT is nil, the search regex is used to select matching regions.
+If INVERT is t, the search regex is used to split matching regions."
   (interactive "r")
   (if (evil-visual-state-p)
       (progn
@@ -211,6 +234,9 @@
     (user-error "Must be in visual state")))
 
 (defun kak-filter (&optional keep)
+  "Filter/keep all cursors matching a regex string.
+If KEEP is nil, cursors matching a regex string will be filtered.
+If KEEP is true, cursors matching a regex string will be kept."
   (interactive)
   (if (evil-visual-state-p)
       (progn
@@ -223,7 +249,20 @@
           (user-error "No matches remaining")))
     (user-error "Must be in visual state")))
 
+(evil-define-command evil-shell-command-on-region (beg end command)
+  "Execute a shell COMMAND on a given region (from BEG to END).
+The region's content will be used as the COMMAND's standard input and it will be replace by the output of the COMMAND."
+  (interactive (let (cmd)
+                 (unless (mark)
+                   (user-error "No active region"))
+                 (setq cmd (read-shell-command "Shell command on region: "))
+                 (list (region-beginning) (region-end)
+                       cmd)))
+  (shell-command-on-region beg end command nil t shell-command-default-error-buffer t (region-noncontiguous-p)))
+
 (defun kak-exec-shell-command (command)
+  "Execute a shell COMMAND at each matching region (cursor).
+The region's content will be used as the COMMAND's standard input and it will be replace by the output of the COMMAND."
   (interactive (list (read-shell-command "Shell command: ")))
   (if (evil-visual-state-p)
       (evil-mc-execute-for-all-cursors
@@ -243,6 +282,7 @@
     (user-error "Must be in visual state")))
 
 (defun kak-insert-index (base)
+  "Insert a index after every matching region (cursor) based on the cursor's position and the BASE index."
   (interactive "nbase index: ")
   (setq base (1- base))
   (evil-mc-execute-for-all-cursors
