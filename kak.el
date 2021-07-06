@@ -136,7 +136,8 @@ Matching regions become spliting regions."
     (if (search-forward-regexp regex nil kak-region-end)
         (setq match (match-data 0)) (setq match nil))
     (while (and match (<= (cl-second match) kak-region-end))
-      (push match kak-matches)
+      (when (< (cl-first match) (cl-second match))
+          (push match kak-matches))
       (goto-char (cl-second match))
       ;; handle eof and eol cases
       (when (= (point) (line-end-position))
@@ -232,6 +233,19 @@ If INVERT is t, the search regex is used to split matching regions."
               (progn (evil-exit-visual-state) (kak-make-cursors-for-matches kak-matches))
             (user-error "No match"))))
     (user-error "Must be in visual state")))
+
+(defun kak-split-lines (beg end)
+  "Split a region (BEG to END) into multiple lines. Each line will be a cursor region."
+  (interactive "r")
+  (if (evil-visual-state-p)
+  (progn
+    (setq! kak-current-buffer (current-buffer)
+           kak-region-beg beg
+           kak-region-end end
+           kak-match-overlays nil)
+    (kak-get-matches-in-region ".*")
+    (kak-make-cursors-for-matches kak-matches)))
+  (user-error "Must be in visual state"))
 
 (defun kak-filter (&optional keep)
   "Filter/keep all cursors matching a regex string.

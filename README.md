@@ -12,7 +12,8 @@ The package's main functions:
 ### Visual mode only functions
 
 - `|` (Kakoune) - `kak-exec-shell-command (command)` (Emacs): execute a shell command using each cursor's region as the standard input and replace the region with the standard output.
-- `s/S`(Kakoune) - `kak-select (beg end invert)` (Emacs): split/select a given region into multiple matching regions. `invert` determines whether the command should do a split.
+- `s/S` (Kakoune) - `kak-select (beg end invert)` (Emacs): split/select a given region into multiple matching regions. `invert` determines whether the command should do a split.
+- `M-s` (Kakoune) - `kak-split-lines (beg end)` (Emacs): split a given region into multiple lines. There will be a cursor each line.
 - `M-k/M-K` (Kakoune) - `kak-filter (keep)` (Emacs): filter/keep all active cursors. `keep` determines whether the command should keep the matching cursors.
 
 ### Normal/Visual mode functions
@@ -38,6 +39,7 @@ An example mapping using [Doom Emacs](https://github.com/hlissner/doom-emacs)'s 
   :v "|" #'kak-exec-shell-command
   :v "s" (lambda (beg end) (interactive "r") (kak-select beg end nil))
   :v "S" (lambda (beg end) (interactive "r") (kak-select beg end t))
+  :v "M-s" #'kak-split-lines
   :v "M-k" (lambda () (interactive) (kak-filter t))
   :v "M-K" (lambda () (interactive) (kak-filter nil))
   :v ". #" #'kak-insert-index)
