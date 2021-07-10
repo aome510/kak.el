@@ -11,10 +11,10 @@ The package's main functions:
 
 ### Visual mode only functions
 
-- `|` (Kakoune) - `kak-exec-shell-command (command)` (Emacs): execute a shell command using each cursor's region as the standard input and replace the region with the standard output.
-- `s/S` (Kakoune) - `kak-select (beg end invert)` (Emacs): split/select a given region into multiple matching regions. `invert` determines whether the command should do a split.
+- `|` (Kakoune) - `kak-exec-shell-command (command)` (Emacs): execute a shell command using each cursor's region as the standard input and replace the region's content with the standard output.
+- `s/S` (Kakoune) - `kak-select (beg end invert)` (Emacs): split/select a given region into multiple matching regions. `invert` determines whether the command should do a split (inver match).
 - `M-s` (Kakoune) - `kak-split-lines (beg end)` (Emacs): split a given region into multiple lines. There will be a cursor each line.
-- `M-k/M-K` (Kakoune) - `kak-filter (keep)` (Emacs): filter/keep all active cursors. `keep` determines whether the command should keep the matching cursors.
+- `M-k/M-K` (Kakoune) - `kak-filter (keep)` (Emacs): filter/keep all active cursors. `keep` determines whether the command should keep or remove the matching cursors.
 
 ### Normal/Visual mode functions
 
@@ -25,6 +25,13 @@ The package's main functions:
 ![demo](./examples/demo.gif)
 
 ## Usage
+
+To install using [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources)'s `package!` macro:
+
+```
+(package! kak
+  :recipe (:host github :repo "aome510/kak.el"))
+```
 
 To use the package after installation
 
