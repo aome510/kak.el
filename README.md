@@ -28,7 +28,7 @@ The package's main functions:
 
 To install using [Doom Emacs](https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#installing-packages-from-external-sources)'s `package!` macro:
 
-```
+```emacs-lisp
 (package! kak
   :recipe (:host github :repo "aome510/kak.el"))
 ```
