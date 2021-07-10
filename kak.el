@@ -138,9 +138,7 @@
       ;; handle eof and eol cases
       (when (= (point) (line-end-position))
         (forward-char 1))
-      (when (= (point) (point-max))
-        (forward-char -1))
-      (if (search-forward-regexp regex nil kak-region-end)
+      (if (and (< (point) (point-max)) (search-forward-regexp regex nil kak-region-end))
           (setq match (match-data 0)) (setq match nil)))
     (setq kak-cursor-regions (reverse kak-cursor-regions))
     (when kak-invert-match
