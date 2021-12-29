@@ -125,21 +125,41 @@
 
 (defun kak-get-matches-in-region (regex)
   "Get all matches of a REGEX string within the current active region (from `kak-region-begin' to `kak-region-end')."
-  (let ((match))
+  (let ((match) (beg) (end))
     (setq! kak-cursor-regions nil
            kak-cursor-overlays nil)
     (goto-char kak-region-beg)
-    (if (search-forward-regexp regex nil kak-region-end)
+
+    ;; (message "region: (%s, %s)" kak-region-beg kak-region-end)
+
+    (if (search-forward-regexp regex kak-region-end t)
         (setq match (match-data 0)) (setq match nil))
-    (while (and match (<= (cl-second match) kak-region-end))
-      (when (< (cl-first match) (cl-second match))
-          (push match kak-cursor-regions))
-      (goto-char (cl-second match))
+
+    (while (and match (< (cl-second match) kak-region-end))
+      (setq beg (cl-first match)
+            end (cl-second match))
+
+      ;; match begin can be equal to match end
+      ;; when searching with regex "^" and the cursor is placed
+      ;; at the begin of line
+      (if (= beg end)
+          (setq end (1+ end)))
+      (goto-char end)
+
+      (when (< beg end)
+        (push (list beg end) kak-cursor-regions))
+
+      ;; (message "beg: %s, end: %s" beg end)
+
       ;; handle eof and eol cases
       (when (= (point) (line-end-position))
         (forward-char 1))
-      (if (and (< (point) (point-max)) (search-forward-regexp regex nil kak-region-end))
+
+      ;; (message "point: %s" (point))
+
+      (if (and (< (point) kak-region-end) (search-forward-regexp regex kak-region-end t))
           (setq match (match-data 0)) (setq match nil)))
+
     (setq kak-cursor-regions (reverse kak-cursor-regions))
     (when kak-invert-match
       (setq kak-cursor-regions (kak-get-invert-matches kak-cursor-regions kak-region-beg kak-region-end)))))
