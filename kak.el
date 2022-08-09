@@ -11,7 +11,6 @@
 ;;; Code:
 (require 'evil)
 (require 'evil-mc)
-(require 'core-lib)
 
 (defun evil-mc-create-fake-cursor-from-real-cursor ()
   "Create an `evil-mc' fake cursor from the real cursor state."
