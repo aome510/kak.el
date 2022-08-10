@@ -1,7 +1,9 @@
-;;; kak.el --- An attempt to port Kakoune's interactive multiple cursors to Emacs -*- lexical-binding: t; -*-
+;;; kak.el --- Kakoune port to Emacs -*- lexical-binding: t; -*-
 
 ;; Author: Thang Pham <phamducthang1234@gmail.com>
-;; Version: 0.1
+;; URL: https://github.com/aome510/kak.el
+;; Version: 0.2
+;; Package-Requires: ((emacs "28"))
 ;; MIT License
 
 ;;; Commentary:
@@ -12,7 +14,7 @@
 (require 'evil)
 (require 'evil-mc)
 
-(defun evil-mc-create-fake-cursor-from-real-cursor ()
+(defun kak-create-fake-cursor-from-real-cursor ()
   "Create an `evil-mc' fake cursor from the real cursor state."
   (let (cursor
         (state (evil-mc-read-cursor-state))
@@ -24,9 +26,9 @@
                     (copy-tree (evil-mc-get-cursor-property state name)))))
     cursor))
 
-;; overidding `evil-mc-get-default-cursor' to use `evil-mc-create-fake-cursor-from-real-cursor' for creating a fake cursor
+;; overidding `evil-mc-get-default-cursor' to use `kak-create-fake-cursor-from-real-cursor' for creating a fake cursor
 (advice-add 'evil-mc-get-default-cursor :override
-            #'evil-mc-create-fake-cursor-from-real-cursor)
+            #'kak-create-fake-cursor-from-real-cursor)
 
 ;;; variables
 
@@ -123,9 +125,9 @@
                (kak-get-invert-matches matches (cl-second match) end)))))))
 
 (defun kak-get-matches-in-region (regex)
-  "Get all matches of a REGEX string within the current active region (from `kak-region-begin' to `kak-region-end')."
+  "Get all matches of a REGEX string within the active region."
   (let ((match) (beg) (end))
-    (setq! kak-cursor-regions nil
+    (setq kak-cursor-regions nil
            kak-cursor-overlays nil)
     (goto-char kak-region-beg)
 
@@ -192,7 +194,7 @@
 If INVERT is nil, the search regex is used to select matching regions.
 If INVERT is t, the search regex is used to split matching regions."
   (progn
-    (setq! kak-current-buffer (current-buffer)
+    (setq kak-current-buffer (current-buffer)
            kak-region-beg beg
            kak-region-end end
            kak-invert-match invert
@@ -217,7 +219,7 @@ If INVERT is t, the search regex is used to split matching regions."
 If KEEP is nil, a cursor's region matching a regex string will be filtered.
 If KEEP is true, a cursor's region matching a regex string will be kept."
   (progn
-    (setq! kak-current-buffer (current-buffer)
+    (setq kak-current-buffer (current-buffer)
            kak-filter-keep keep
            kak-cursor-overlays nil)
     (add-hook 'minibuffer-setup-hook #'kak-start-filter-session)
@@ -248,11 +250,12 @@ If INVERT is t, the search regex is used to split matching regions."
     (user-error "Must be in visual state")))
 
 (defun kak-split-lines (beg end)
-  "Split a region (BEG to END) into multiple lines. Each line will be a cursor region."
+  "Split a region (BEG to END) into multiple lines.
+Each line will be a cursor region."
   (interactive "r")
   (if (evil-visual-state-p)
       (progn
-        (setq! kak-current-buffer (current-buffer)
+        (setq kak-current-buffer (current-buffer)
                kak-region-beg beg
                kak-region-end end
                kak-cursor-overlays nil)
@@ -278,7 +281,8 @@ If KEEP is true, cursors matching a regex string will be kept."
 
 (evil-define-command evil-shell-command-on-region (beg end command)
   "Execute a shell COMMAND on a given region (from BEG to END).
-The region's content will be used as the COMMAND's standard input and it will be replace by the output of the COMMAND."
+The region's content will be used as the COMMAND's standard input
+and it will be replace by the output of the COMMAND."
   (interactive (let (cmd)
                  (unless (mark)
                    (user-error "No active region"))
@@ -289,7 +293,8 @@ The region's content will be used as the COMMAND's standard input and it will be
 
 (defun kak-exec-shell-command (command)
   "Execute a shell COMMAND at each cursor's region.
-The region's content will be piped as the COMMAND's stdin and it will be replace by the COMMAND's stdout."
+The region's content will be piped as the COMMAND's stdin
+and it will be replace by the COMMAND's stdout."
   (interactive (list (read-shell-command "Shell command: ")))
   (if (evil-visual-state-p)
       (evil-mc-execute-for-all-cursors
@@ -309,7 +314,8 @@ The region's content will be piped as the COMMAND's stdin and it will be replace
     (user-error "Must be in visual state")))
 
 (defun kak-insert-index (base)
-  "Insert a index after every cursor's region based on the cursor's position and a BASE index."
+  "Insert an index after every cursor's region.
+The inserted index is based on each cursor's position and a BASE index."
   (interactive "nbase index: ")
   (setq base (1- base))
   (evil-mc-execute-for-all-cursors
